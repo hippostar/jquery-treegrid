@@ -162,10 +162,22 @@
          * @returns {Boolean}
          */
         isFirstInit: function() {
-            var tree = $(this).treegrid('getTreeContainer');
+            var $this = $(this);
+            
+            var tree = $this.treegrid('getTreeContainer');
+            
             if (tree.data('first_init') === undefined) {
-                tree.data('first_init', $.cookie(tree.treegrid('getSetting', 'saveStateName')) === undefined);
+                
+                var saveStateMethod = $this.treegrid('getSetting', 'saveStateMethod');
+                var saveStateName = $this.treegrid('getSetting', 'saveStateName');
+                
+                if(saveStateMethod  === 'cookie') {
+                    tree.data('first_init', $.cookie(saveStateName) === undefined);
+                } else if (saveStateMethod === 'localStorage') {
+                    tree.data('first_init', localStorage.getItem(saveStateName) === null);
+                }
             }
+            
             return tree.data('first_init');
         },
         /**
@@ -175,22 +187,27 @@
          */
         saveState: function() {
             var $this = $(this);
-            if ($this.treegrid('getSetting', 'saveStateMethod') === 'cookie') {
+            
+            var saveStateMethod = $this.treegrid('getSetting', 'saveStateMethod');
+            var saveStateName = $this.treegrid('getSetting', 'saveStateName');
+            var stateArrayString = $.cookie($this.treegrid('getSetting', 'saveStateName')) || '';
+            var stateArray = (stateArrayString === '' ? [] : stateArrayString.split(','));
+            var nodeId = $this.treegrid('getNodeId');
 
-                var stateArrayString = $.cookie($this.treegrid('getSetting', 'saveStateName')) || '';
-                var stateArray = (stateArrayString === '' ? [] : stateArrayString.split(','));
-                var nodeId = $this.treegrid('getNodeId');
-
-                if ($this.treegrid('isExpanded')) {
-                    if ($.inArray(nodeId, stateArray) === -1) {
-                        stateArray.push(nodeId);
-                    }
-                } else if ($this.treegrid('isCollapsed')) {
-                    if ($.inArray(nodeId, stateArray) !== -1) {
-                        stateArray.splice($.inArray(nodeId, stateArray), 1);
-                    }
+            if ($this.treegrid('isExpanded')) {
+                if ($.inArray(nodeId, stateArray) === -1) {
+                    stateArray.push(nodeId);
                 }
-                $.cookie($this.treegrid('getSetting', 'saveStateName'), stateArray.join(','));
+            } else if ($this.treegrid('isCollapsed')) {
+                if ($.inArray(nodeId, stateArray) !== -1) {
+                    stateArray.splice($.inArray(nodeId, stateArray), 1);
+                }
+            }
+            
+            if (saveStateMethod  === 'cookie') {
+                $.cookie(saveStateName, stateArray.join(','));
+            } else if (saveStateMethod === 'localStorage') {
+                localStorage.setItem(saveStateName, stateArray.join(','));
             }
             return $this;
         },
@@ -201,15 +218,26 @@
          */
         restoreState: function() {
             var $this = $(this);
-            if ($this.treegrid('getSetting', 'saveStateMethod') === 'cookie') {
-                var stateArray = $.cookie($this.treegrid('getSetting', 'saveStateName')).split(',');
+            
+            var stateArrayString;
+            var saveStateMethod = $this.treegrid('getSetting', 'saveStateMethod');
+            var saveStateName = $this.treegrid('getSetting', 'saveStateName');
+            
+            if(saveStateMethod  === 'cookie') {
+               stateArrayString = $.cookie(saveStateName) || '';
+            } else if (saveStateMethod === 'localStorage') {
+               stateArrayString = localStorage.getItem(saveStateName) || '';
+            }
+            
+            if(stateArrayString) {
+                var stateArray = stateArrayString.split(',');
                 if ($.inArray($this.treegrid('getNodeId'), stateArray) !== -1) {
                     $this.treegrid('expand');
                 } else {
                     $this.treegrid('collapse');
-                }
-
+                }   
             }
+            
             return $this;
         },
         /**
